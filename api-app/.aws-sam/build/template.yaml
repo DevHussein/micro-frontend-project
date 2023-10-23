@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'api-app
+
+  Sample SAM Template for api-app
+
+  '
+Globals:
+  Function:
+    Timeout: 10
+  Api:
+    Cors:
+      AllowMethods: '''GET,POST,OPTIONS'''
+      AllowHeaders: '''content-type'''
+      AllowOrigin: '''*'''
+      AllowCredentials: '''*'''
+Resources:
+  ProductTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ProductTable
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  UserTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserTable
+      AttributeDefinitions:
+      - AttributeName: username
+        AttributeType: S
+      KeySchema:
+      - AttributeName: username
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  UserCartTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserCartTable
+      AttributeDefinitions:
+      - AttributeName: username
+        AttributeType: S
+      - AttributeName: productId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: username
+        KeyType: HASH
+      - AttributeName: productId
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: HelloWorldFunction
+      Handler: app.lambdaHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      SamResourceId: HelloWorldFunction
+  UserApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UserApiFunction
+      Handler: users.postHandler
+      Runtime: nodejs18.x
+      Events:
+        UserPostEvent:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserTable
+    Metadata:
+      SamResourceId: UserApiFunction
+  UserRegisterApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UserRegisterApiFunction
+      Handler: users.registerHandler
+      Runtime: nodejs18.x
+      Events:
+        UserPostEvent:
+          Type: Api
+          Properties:
+            Path: /register
+            Method: post
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserTable
+    Metadata:
+      SamResourceId: UserRegisterApiFunction
+  UserGetApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UserGetApiFunction
+      Handler: users.getHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /users/{userId}
+            Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserTable
+    Metadata:
+      SamResourceId: UserGetApiFunction
+  ProductsApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProductsApiFunction
+      Handler: products.getHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductTable
+    Metadata:
+      SamResourceId: ProductsApiFunction
+  ProductApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProductApiFunction
+      Handler: products.getSingleProductHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /products/{productId}
+            Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductTable
+    Metadata:
+      SamResourceId: ProductApiFunction
+  UserCartPostApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UserCartPostApiFunction
+      Handler: user-cart.postHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /carts/{userId}
+            Method: post
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserCartTable
+    Metadata:
+      SamResourceId: UserCartPostApiFunction
+  UserCartGetApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UserCartGetApiFunction
+      Handler: user-cart.getHandler
+      Runtime: nodejs18.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /carts/{userId}
+            Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UserCartTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductTable
+    Metadata:
+      SamResourceId: UserCartGetApiFunction
+Outputs:
+  HelloWorldApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/
+  HelloWorldFunction:
+    Description: Hello World Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - HelloWorldFunction
+      - Arn
+  HelloWorldFunctionIamRole:
+    Description: Implicit IAM Role created for Hello World function
+    Value:
+      Fn::GetAtt:
+      - HelloWorldFunctionRole
+      - Arn
